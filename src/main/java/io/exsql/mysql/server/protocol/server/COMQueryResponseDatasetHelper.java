@@ -3,6 +3,7 @@ package io.exsql.mysql.server.protocol.server;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.*;
+import scala.collection.Seq;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,24 +99,8 @@ public final class COMQueryResponseDatasetHelper {
      * @return a configured COMQueryResponseBuilder ready to build MySQL protocol packets
      * @throws IllegalArgumentException if the dataset is null
      */
-    public static COMQueryResponseBuilder fromDataset(final int capabilitiesFlag, final Dataset<Row> dataset) {
-        var builder = COMQueryResponseBuilder.create(capabilitiesFlag);
-
-        // Set column count
-        var schema = dataset.schema();
-
-        // Add column definitions
-        for (final StructField field: schema.fields()) {
-            builder.withColumnDefinition(createColumnDefinition(field));
-        }
-
-        // Add rows
-        var rows = dataset.collectAsList();
-        for (final Row row: rows) {
-            builder.withRow(convertRowToStringList(row, schema));
-        }
-
-        return builder;
+    public static TextResultsetPacketStreamBuilder fromDataset(final int capabilitiesFlag, final Dataset<Row> dataset) {
+        return TextResultsetPacketStreamBuilder.create(capabilitiesFlag, dataset);
     }
 
     /**
@@ -124,8 +109,8 @@ public final class COMQueryResponseDatasetHelper {
      * @param field the Spark StructField
      * @return a ColumnDefinition for the MySQL protocol
      */
-    public static COMQueryResponseBuilder.ColumnDefinition createColumnDefinition(final StructField field) {
-        return new COMQueryResponseBuilder.ColumnDefinition(
+    public static ColumnDefinition createColumnDefinition(final StructField field) {
+        return new ColumnDefinition(
                 "",
                 "",
                 "",
@@ -223,8 +208,10 @@ public final class COMQueryResponseDatasetHelper {
             return null;
         }
 
-        // For simple types, just use toString()
-        return value.toString();
+        return switch (dataType) {
+            case ArrayType arrayType -> ((Seq<?>) value).mkString("[", ",", "]");
+            default -> value.toString();
+        };
     }
 
 }

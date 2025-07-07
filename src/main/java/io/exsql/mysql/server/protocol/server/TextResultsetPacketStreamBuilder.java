@@ -14,12 +14,13 @@ public class TextResultsetPacketStreamBuilder implements Iterator<PacketBuilder>
         COLUMN_COUNT,
         COLUMN_DEFINITION,
         ROW_DATA,
-        DONE
+        DONE,
+        STOP
     }
 
     private final int clientFlag;
 
-    private final List<COMQueryResponseBuilder.ColumnDefinition> columnDefinitions = new ArrayList<>();
+    private final List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     private final List<List<String>> rows = new ArrayList<>();
 
@@ -47,53 +48,78 @@ public class TextResultsetPacketStreamBuilder implements Iterator<PacketBuilder>
 
     @Override
     public boolean hasNext() {
-//        return switch (this.phase) {
-//            case COLUMN_COUNT -> !this.columnDefinitions.isEmpty();
-//            case COLUMN_DEFINITION -> {
-//                if (this.stream == null) {
-//                    this.stream = ColumnDefinitionPacketStreamBuilder.create(this.columnDefinitions);
-//                }
-//
-//                var hasNext = this.stream.hasNext();
-//                if (!hasNext) {
-//                    this.stream = null;
-//                }
-//
-//                yield hasNext || !this.rows.isEmpty();
-//            }
-//            case ROW_DATA -> {
-//                if (this.stream == null) {
-//                    //TODO: initialize stream
-//                }
-//
-//                yield this.stream.hasNext();
-//            }
-//            default -> false;
-//        };
+        prepareNext();
+        return switch (this.phase) {
+            case COLUMN_COUNT -> true;
+            case STOP -> false;
+            default -> this.stream.hasNext();
+        };
     }
 
     @Override
     public PacketBuilder next() {
-//        return switch (this.phase) {
-//            case COLUMN_COUNT -> {
-//                    var packet = ColumnCountPacketBuilder.create(this.clientFlag, this.columnDefinitions.size());
-//                    this.phase = this.columnDefinitions.isEmpty() ?
-//                            TextResultsetPacketStreamPhase.DONE : TextResultsetPacketStreamPhase.COLUMN_DEFINITION;
-//                    yield packet;
-//            }
-//            case COLUMN_DEFINITION -> {
-//                if (this.stream.hasNext()) {
-//                    yield this.stream.next();
-//                } else {
-//                    this.phase = this.rows.isEmpty() ?
-//                            TextResultsetPacketStreamPhase.DONE : TextResultsetPacketStreamPhase.ROW_DATA;
-//                    this.stream = null;
-//                    yield next();
-//                }
-//            }
-//            case ROW_DATA -> null;
-//            case DONE -> null;
-//        };
+        var next = this.stream.next();
+        if (!this.stream.hasNext()) {
+            transition();
+            this.stream = null;
+        }
+
+        return next;
+    }
+
+    private void transition() {
+        switch (this.phase) {
+            case COLUMN_COUNT ->
+                    this.phase = this.columnDefinitions.isEmpty() ?
+                            TextResultsetPacketStreamPhase.DONE : TextResultsetPacketStreamPhase.COLUMN_DEFINITION;
+            case COLUMN_DEFINITION ->
+                    this.phase = this.rows.isEmpty() ?
+                            TextResultsetPacketStreamPhase.DONE : TextResultsetPacketStreamPhase.ROW_DATA;
+            case DONE -> this.phase = TextResultsetPacketStreamPhase.STOP;
+            default -> this.phase = TextResultsetPacketStreamPhase.DONE;
+        }
+    }
+
+    private void prepareNext() {
+        if (this.stream == null) {
+            switch (this.phase) {
+                case COLUMN_COUNT -> this.stream = new Iterator<>() {
+                    private final PacketBuilder packet = ColumnCountPacketBuilder.create(clientFlag, columnDefinitions.size());
+                    private boolean consumed = false;
+
+                    @Override
+                    public boolean hasNext() {
+                        return !consumed;
+                    }
+
+                    @Override
+                    public PacketBuilder next() {
+                        consumed = true;
+                        return packet;
+                    }
+                };
+                case COLUMN_DEFINITION -> this.stream = ColumnDefinitionPacketStreamBuilder.create(this.columnDefinitions);
+                case ROW_DATA -> this.stream = RowDataPacketStreamBuilder.create(this.rows);
+                case DONE -> this.stream = new Iterator<>() {
+                    private final PacketBuilder packet = OkPacketBuilder
+                            .create()
+                            .withHeader(OkPacketBuilder.EOF_PACKET_HEADER);
+                    private boolean consumed = false;
+
+                    @Override
+                    public boolean hasNext() {
+                        return !consumed;
+                    }
+
+                    @Override
+                    public PacketBuilder next() {
+                        consumed = true;
+                        return packet;
+                    }
+                };
+                case STOP -> {}
+            }
+        }
     }
 
 }

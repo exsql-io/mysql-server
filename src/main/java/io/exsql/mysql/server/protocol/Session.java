@@ -1,14 +1,23 @@
 package io.exsql.mysql.server.protocol;
 
+import com.google.common.collect.Lists;
 import io.exsql.mysql.server.protocol.client.COMQueryPacket;
 import io.exsql.mysql.server.protocol.client.HandshakeResponse41;
 import io.exsql.mysql.server.protocol.server.COMQueryResponseDatasetHelper;
+import io.exsql.mysql.server.protocol.server.ErrPacketBuilder;
 import io.exsql.mysql.server.protocol.server.HandshakeV10Builder;
 import io.exsql.mysql.server.protocol.server.OkPacketBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
+import org.apache.spark.sql.AnalysisException;
+import org.apache.spark.sql.Encoder;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.GenericRow;
+import org.apache.spark.sql.classic.Dataset;
 import org.apache.spark.sql.classic.SparkSession;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -19,6 +28,14 @@ import java.util.function.Function;
 public class Session {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
+
+    private static final Row[] VERSION_COMMENT_ROW = new GenericRow[] {
+            new GenericRow(new String[] { "data-platform-mysql-frontend" })
+    };
+
+    private static final StructType VERSION_COMMENT_SCHEMA = StructType.fromDDL("version_comment string");
+
+    private static final Encoder<Row> VERSION_COMMENT_ENCODER = Encoders.row(VERSION_COMMENT_SCHEMA);
 
     private final SparkSession spark;
 
@@ -101,16 +118,56 @@ public class Session {
                             break;
                         case COMMAND_PHASE:
                             var cq = COMQueryPacket.parse(inbound);
-                            var df = spark.sql(cq.query());
-                            send(byteBufAllocator -> {
-                                var buffer = byteBufAllocator.buffer();
-                                COMQueryResponseDatasetHelper
-                                        .fromDataset(this.handshakeResponse.clientFlag(), df)
-                                        .withSequenceId((byte) sequenceId)
-                                        .build(buffer);
+                            resetSequenceId(cq.header().sequenceId());
 
-                                return buffer;
-                            });
+                            try {
+                                Dataset<Row> ds = null;
+                                if (cq.query().equalsIgnoreCase("SELECT @@version_comment LIMIT 1")) {
+                                    ds = spark.createDataset(Lists.newArrayList(VERSION_COMMENT_ROW), VERSION_COMMENT_ENCODER);
+                                } else {
+                                    ds = spark.sql(cq.query());
+                                }
+
+                                var stream = COMQueryResponseDatasetHelper.fromDataset(this.handshakeResponse.clientFlag(), ds);
+                                while (stream.hasNext()) {
+                                    send(byteBufAllocator -> {
+                                        var buffer = byteBufAllocator.buffer();
+                                        stream.next().withSequenceId((byte) sequenceId).build(buffer);
+                                        return buffer;
+                                    });
+                                }
+                            } catch (final Throwable throwable) {
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug("Session[{}]: an error occurred while processing query: {}. See logs for more details.", id, cq.query(), throwable);
+                                }
+
+                                switch (throwable) {
+                                    case AnalysisException ae ->
+                                        // Error number: 1064; Symbol: ER_PARSE_ERROR; SQLSTATE: 42000
+                                        send(byteBufAllocator -> {
+                                            var buffer = byteBufAllocator.buffer();
+                                            ErrPacketBuilder
+                                                    .create()
+                                                    .withErrorCode((short) 1064)
+                                                    .withSqlState("42000")
+                                                    .withErrorMessage(ae.getSimpleMessage())
+                                                    .withSequenceId((byte) sequenceId)
+                                                    .build(buffer);
+                                            return buffer;
+                                        });
+                                    default ->
+                                            send(byteBufAllocator -> {
+                                                var buffer = byteBufAllocator.buffer();
+                                                ErrPacketBuilder
+                                                        .create()
+                                                        .withErrorCode((short) 1105)
+                                                        .withSequenceId((byte) sequenceId)
+                                                        .build(buffer);
+                                                return buffer;
+                                            });
+                                }
+                            }
+
                             break;
                     }
                 })
@@ -120,8 +177,12 @@ public class Session {
     private void incrementSequenceId() {
         sequenceId++;
         if (sequenceId > 0xFF) {
-            sequenceId = 0;
+            this.sequenceId = 0;
         }
+    }
+
+    private void resetSequenceId(final byte to) {
+        this.sequenceId = (byte) (to + 1);
     }
 
 }

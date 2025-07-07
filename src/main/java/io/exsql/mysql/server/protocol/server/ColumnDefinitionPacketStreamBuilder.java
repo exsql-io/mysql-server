@@ -6,13 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 
 class ColumnDefinitionPacketStreamBuilder implements Iterator<PacketBuilder> {
-    private final Iterator<COMQueryResponseBuilder.ColumnDefinition> columnDefinitions;
+    private final Iterator<ColumnDefinition> columnDefinitions;
 
-    ColumnDefinitionPacketStreamBuilder(final Iterator<COMQueryResponseBuilder.ColumnDefinition> columnDefinitions) {
+    ColumnDefinitionPacketStreamBuilder(final Iterator<ColumnDefinition> columnDefinitions) {
         this.columnDefinitions = columnDefinitions;
     }
 
-    static ColumnDefinitionPacketStreamBuilder create(final List<COMQueryResponseBuilder.ColumnDefinition> columnDefinitions) {
+    static ColumnDefinitionPacketStreamBuilder create(final List<ColumnDefinition> columnDefinitions) {
         return new ColumnDefinitionPacketStreamBuilder(columnDefinitions.iterator());
     }
 
@@ -26,10 +26,10 @@ class ColumnDefinitionPacketStreamBuilder implements Iterator<PacketBuilder> {
         return new ColumnDefinitionPacketBuilder(columnDefinitions.next());
     }
 
-    private static class ColumnDefinitionPacketBuilder extends PacketBuilder {
-        private final COMQueryResponseBuilder.ColumnDefinition columnDefinition;
+    static class ColumnDefinitionPacketBuilder extends PacketBuilder {
+        private final ColumnDefinition columnDefinition;
 
-        private ColumnDefinitionPacketBuilder(final COMQueryResponseBuilder.ColumnDefinition columnDefinition) {
+        private ColumnDefinitionPacketBuilder(final ColumnDefinition columnDefinition) {
             this.columnDefinition = columnDefinition;
         }
 
