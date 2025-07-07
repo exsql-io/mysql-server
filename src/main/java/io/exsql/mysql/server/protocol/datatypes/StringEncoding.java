@@ -207,12 +207,15 @@ public final class StringEncoding {
      * @param buffer The buffer to write to
      * @param bytes The byte array to encode
      */
-    public static void encodeLengthEncoded(final ByteBuf buffer, final byte[] bytes) {
+    public static int encodeLengthEncoded(final ByteBuf buffer, final byte[] bytes) {
         // Write the length of the byte array as a length-encoded integer
-        LengthEncodedInteger.encode(buffer, bytes.length);
+        var length = LengthEncodedInteger.encode(buffer, bytes.length);
 
         // Write the bytes
         buffer.writeBytes(bytes);
+
+        length += bytes.length;
+        return length;
     }
 
     /**
@@ -222,8 +225,8 @@ public final class StringEncoding {
      * @param value The string to encode
      * @param charset The character set to use for encoding
      */
-    public static void encodeLengthEncoded(final ByteBuf buffer, final String value, @NonNull final Charset charset) {
-        encodeLengthEncoded(buffer, value.getBytes(charset));
+    public static int encodeLengthEncoded(final ByteBuf buffer, final String value, @NonNull final Charset charset) {
+        return encodeLengthEncoded(buffer, value.getBytes(charset));
     }
 
     /**
@@ -232,8 +235,8 @@ public final class StringEncoding {
      * @param buffer The buffer to write to
      * @param value The string to encode
      */
-    public static void encodeLengthEncoded(final ByteBuf buffer, final String value) {
-        encodeLengthEncoded(buffer, value, StandardCharsets.UTF_8);
+    public static int encodeLengthEncoded(final ByteBuf buffer, final String value) {
+        return encodeLengthEncoded(buffer, value, StandardCharsets.UTF_8);
     }
 
     /**

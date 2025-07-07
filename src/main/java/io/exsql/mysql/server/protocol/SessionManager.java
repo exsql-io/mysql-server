@@ -1,5 +1,6 @@
 package io.exsql.mysql.server.protocol;
 
+import org.apache.spark.sql.classic.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.netty.Connection;
@@ -18,10 +19,13 @@ public class SessionManager {
 
     private final ReentrantLock lock = new ReentrantLock(true);
 
+    private final SparkSession spark;
+
     private int sessionId = 0;
 
-    public SessionManager() {
+    public SessionManager(final SparkSession spark) {
         this.sessions = new ConcurrentHashMap<>();
+        this.spark = spark;
     }
 
     public void initialize(final Connection connection) {
@@ -29,7 +33,7 @@ public class SessionManager {
 
         LOGGER.debug("Initializing session[{}]: {}:{}", id, connection.channel().remoteAddress(), connection.channel().localAddress());
 
-        var session = new Session(id, connection);
+        var session = new Session(this.spark.newSession(), id, connection);
         sessions.put(id, session);
         session.initialize();
     }

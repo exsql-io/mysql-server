@@ -16,6 +16,8 @@ public class Capability {
 
     public final static int CLIENT_DEPRECATE_EOF_FLAG = 1 << 24;
 
+    public final static int CLIENT_OPTIONAL_RESULTSET_METADATA_FLAG = 1 << 25;
+
     public final static int CLIENT_REMEMBER_OPTIONS_FLAG = 1 << 31;
 
 
@@ -27,6 +29,7 @@ public class Capability {
         flag |= CLIENT_PLUGIN_AUTH_FLAG;
         flag |= CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA;
         flag |= CLIENT_DEPRECATE_EOF_FLAG;
+        flag |= CLIENT_OPTIONAL_RESULTSET_METADATA_FLAG;
         flag |= CLIENT_REMEMBER_OPTIONS_FLAG;
 
         return flag;
@@ -42,6 +45,14 @@ public class Capability {
 
     public static boolean hasClientPluginAuthClientDataFlag(final int flag) {
         return (flag & CLIENT_PLUGIN_AUTH_FLAG) != 0;
+    }
+
+    public static boolean hasClientDeprecateEOFFlag(final int flag) {
+        return (flag & CLIENT_DEPRECATE_EOF_FLAG) != 0;
+    }
+
+    public static boolean hasClientOptionalResultsetMetadataFlag(final int flag) {
+        return (flag & CLIENT_OPTIONAL_RESULTSET_METADATA_FLAG) != 0;
     }
 
     public static boolean hasClientPluginAuthLenencClientDataFlag(final int flag) {

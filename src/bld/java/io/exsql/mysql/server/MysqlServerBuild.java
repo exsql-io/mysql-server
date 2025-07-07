@@ -6,8 +6,7 @@ import java.util.List;
 
 import static rife.bld.dependencies.Repository.MAVEN_CENTRAL;
 import static rife.bld.dependencies.Repository.RIFE2_RELEASES;
-import static rife.bld.dependencies.Scope.compile;
-import static rife.bld.dependencies.Scope.test;
+import static rife.bld.dependencies.Scope.*;
 
 public class MysqlServerBuild extends Project {
     public MysqlServerBuild() {
@@ -24,6 +23,9 @@ public class MysqlServerBuild extends Project {
                 .include(dependency("org.slf4j", "slf4j-api", version(2, 0, 17)))
                 .include(dependency("ch.qos.logback", "logback-core", version(1, 5, 18)))
                 .include(dependency("ch.qos.logback", "logback-classic", version(1, 5, 18)));
+
+        scope(provided)
+                .include(dependency("org.apache.spark", "spark-sql_2.13", version(4,0,0)));
 
         scope(test)
             .include(dependency("org.junit.jupiter", "junit-jupiter", version(5,11,4)))

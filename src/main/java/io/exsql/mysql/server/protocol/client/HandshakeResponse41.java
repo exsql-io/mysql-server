@@ -19,7 +19,7 @@ public record HandshakeResponse41(PacketHeader header,
     private final static int FILLER_LENGTH = 23;
 
     public static HandshakeResponse41 parse(final ByteBuf buffer) throws IllegalArgumentException {
-        var header = PacketHeader.parse(buffer);
+        var header = PacketHeader.parse(buffer, false);
         var clientFlag = FixedLengthInteger.decode4(buffer);
         var maxPacketSize = FixedLengthInteger.decode4(buffer);
         var characterSet = FixedLengthInteger.decode1(buffer);

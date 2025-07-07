@@ -1,5 +1,6 @@
 package io.exsql.mysql.server.protocol;
 
+import io.exsql.mysql.server.protocol.server.ErrPacketBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.DisplayName;

@@ -1,4 +1,4 @@
-package io.exsql.mysql.server.protocol;
+package io.exsql.mysql.server.protocol.server;
 
 import io.exsql.mysql.server.protocol.datatypes.FixedLengthInteger;
 import io.exsql.mysql.server.protocol.datatypes.StringEncoding;

@@ -1,6 +1,7 @@
 package io.exsql.mysql.server;
 
 import io.exsql.mysql.server.protocol.SessionManager;
+import org.apache.spark.sql.classic.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.netty.DisposableServer;
@@ -28,10 +29,10 @@ public final class MysqlServer {
 
     private DisposableServer server;
 
-    private MysqlServer(final String host, final int port) {
+    private MysqlServer(final String host, final int port, final SparkSession spark) {
         this.host = host;
         this.port = port;
-        this.sessionManager = new SessionManager();
+        this.sessionManager = new SessionManager(spark);
     }
 
     public void start() {
@@ -62,15 +63,16 @@ public final class MysqlServer {
         return this.server != null ? this.server.port() : this.port;
     }
 
-    public static MysqlServer create(final Map<String, String> environment) {
+    public static MysqlServer create(final Map<String, String> environment, final SparkSession spark) {
         return MysqlServer.create(
                 environment.getOrDefault(IO_EXSQL_MYSQL_SERVER_HOST_ENVIRONMENT_VARIABLE_NAME, IO_EXSQL_MYSQL_SERVER_HOST_DEFAULT),
-                Integer.parseInt(environment.getOrDefault(IO_EXSQL_MYSQL_SERVER_PORT_ENVIRONMENT_VARIABLE_NAME, IO_EXSQL_MYSQL_SERVER_PORT_DEFAULT))
+                Integer.parseInt(environment.getOrDefault(IO_EXSQL_MYSQL_SERVER_PORT_ENVIRONMENT_VARIABLE_NAME, IO_EXSQL_MYSQL_SERVER_PORT_DEFAULT)),
+                spark
         );
     }
 
-    public static MysqlServer create(final String host, final int port) {
-        return new MysqlServer(host, port);
+    public static MysqlServer create(final String host, final int port, final SparkSession spark) {
+        return new MysqlServer(host, port, spark);
     }
 
 }

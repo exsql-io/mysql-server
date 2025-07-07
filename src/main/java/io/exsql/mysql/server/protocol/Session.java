@@ -1,9 +1,14 @@
 package io.exsql.mysql.server.protocol;
 
+import io.exsql.mysql.server.protocol.client.COMQueryPacket;
 import io.exsql.mysql.server.protocol.client.HandshakeResponse41;
+import io.exsql.mysql.server.protocol.server.COMQueryResponseDatasetHelper;
+import io.exsql.mysql.server.protocol.server.HandshakeV10Builder;
+import io.exsql.mysql.server.protocol.server.OkPacketBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
+import org.apache.spark.sql.classic.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -15,6 +20,8 @@ public class Session {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
+    private final SparkSession spark;
+
     private final int id;
 
     private final Connection connection;
@@ -23,7 +30,10 @@ public class Session {
 
     private short sequenceId;
 
-    public Session(final int id, final Connection connection) {
+    private HandshakeResponse41 handshakeResponse;
+
+    public Session(final SparkSession spark, final int id, final Connection connection) {
+        this.spark = spark;
         this.id = id;
         this.connection = connection;
         this.phase = SessionPhase.CONNECTION_PHASE_INITIAL_HANDSHAKE;
@@ -32,16 +42,22 @@ public class Session {
     public void initialize() {
         this.send(byteBufAllocator -> {
             var buffer = byteBufAllocator.buffer();
-            return HandshakeV10Builder.create(this.id).withSequenceId((byte) sequenceId).build(buffer);
+            HandshakeV10Builder.create(this.id).withSequenceId((byte) sequenceId).build(buffer);
+            return buffer;
         });
 
         this.waitForResponse();
     }
 
     public void send(final Function<ByteBufAllocator, ByteBuf> producer) {
+        var buffer = producer.apply(connection.outbound().alloc());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Session[{}]: sending: \n{}", id, ByteBufUtil.prettyHexDump(buffer));
+        }
+
         connection
                 .outbound()
-                .send(Mono.just(producer.apply(connection.outbound().alloc())))
+                .send(Mono.just(buffer))
                 .then()
                 .subscribe()
                 .dispose();
@@ -69,27 +85,31 @@ public class Session {
                     switch (phase) {
                         case CONNECTION_PHASE_INITIAL_HANDSHAKE:
                             // Consume it for now, will need to validate the user later.
-                            HandshakeResponse41.parse(inbound);
+                            this.handshakeResponse = HandshakeResponse41.parse(inbound);
                             send(byteBufAllocator -> {
                                 var buffer = byteBufAllocator.buffer();
-                                return OkPacketBuilder
+                                OkPacketBuilder
                                         .create()
                                         .withHeader(OkPacketBuilder.OK_PACKET_HEADER)
                                         .withStatusFlags(0)
                                         .withSequenceId((byte) sequenceId)
                                         .build(buffer);
+
+                                return buffer;
                             });
                             phase = SessionPhase.COMMAND_PHASE;
                             break;
                         case COMMAND_PHASE:
+                            var cq = COMQueryPacket.parse(inbound);
+                            var df = spark.sql(cq.query());
                             send(byteBufAllocator -> {
                                 var buffer = byteBufAllocator.buffer();
-                                return OkPacketBuilder
-                                        .create()
-                                        .withHeader(OkPacketBuilder.OK_PACKET_HEADER)
-                                        .withStatusFlags(0)
+                                COMQueryResponseDatasetHelper
+                                        .fromDataset(this.handshakeResponse.clientFlag(), df)
                                         .withSequenceId((byte) sequenceId)
                                         .build(buffer);
+
+                                return buffer;
                             });
                             break;
                     }

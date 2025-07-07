@@ -1,6 +1,7 @@
 package io.exsql.mysql.server.protocol;
 
 import io.exsql.mysql.server.protocol.datatypes.LengthEncodedInteger;
+import io.exsql.mysql.server.protocol.server.OkPacketBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.DisplayName;
