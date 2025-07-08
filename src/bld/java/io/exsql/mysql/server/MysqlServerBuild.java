@@ -1,6 +1,7 @@
 package io.exsql.mysql.server;
 
 import rife.bld.Project;
+import rife.bld.dependencies.Version;
 
 import java.util.List;
 
@@ -22,7 +23,10 @@ public class MysqlServerBuild extends Project {
                 .include(dependency("io.projectreactor.netty", "reactor-netty-http", version(1,2,7)))
                 .include(dependency("org.slf4j", "slf4j-api", version(2, 0, 17)))
                 .include(dependency("ch.qos.logback", "logback-core", version(1, 5, 18)))
-                .include(dependency("ch.qos.logback", "logback-classic", version(1, 5, 18)));
+                .include(dependency("ch.qos.logback", "logback-classic", version(1, 5, 18)))
+                .include(dependency("io.netty", "netty-pkitesting", Version.parse("4.2.2.Final")))
+                .include(dependency("org.bouncycastle", "bcprov-jdk18on", Version.parse("1.81")))
+                .include(dependency("org.bouncycastle", "bcpkix-jdk18on", Version.parse("1.81")));
 
         scope(provided)
                 .include(dependency("org.apache.spark", "spark-sql_2.13", version(4,0,0)));

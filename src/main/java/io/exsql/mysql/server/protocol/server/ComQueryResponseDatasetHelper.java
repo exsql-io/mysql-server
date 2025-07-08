@@ -45,7 +45,7 @@ import java.util.List;
  *   <li>Complex types (Array, Map, Struct) → MYSQL_TYPE_VAR_STRING (as JSON)</li>
  * </ul>
  */
-public final class COMQueryResponseDatasetHelper {
+public final class ComQueryResponseDatasetHelper {
 
     // MySQL column type constants based on MySQL protocol specification
     // https://dev.mysql.com/doc/dev/mysql-server/latest/field__types_8h.html
@@ -81,7 +81,7 @@ public final class COMQueryResponseDatasetHelper {
     private static final int DEFAULT_CHARACTER_SET = 45;
 
     // Private constructor to prevent instantiation
-    private COMQueryResponseDatasetHelper() {}
+    private ComQueryResponseDatasetHelper() {}
 
     /**
      * Converts a Spark DataFrame/Dataset<Row> to a COMQueryResponseBuilder.

@@ -1,12 +1,16 @@
 package io.exsql.mysql.server;
 
 import io.exsql.mysql.server.protocol.SessionManager;
+import io.netty.handler.logging.LogLevel;
 import org.apache.spark.sql.classic.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.netty.DisposableServer;
 import reactor.netty.tcp.TcpServer;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
 
+import javax.net.ssl.SSLException;
+import java.security.cert.CertificateException;
 import java.util.Map;
 
 public final class MysqlServer {
@@ -29,7 +33,7 @@ public final class MysqlServer {
 
     private DisposableServer server;
 
-    private MysqlServer(final String host, final int port, final SparkSession spark) {
+    private MysqlServer(final String host, final int port, final SparkSession spark) throws CertificateException, SSLException {
         this.host = host;
         this.port = port;
         this.sessionManager = new SessionManager(spark);
@@ -40,6 +44,7 @@ public final class MysqlServer {
                 .create()
                 .host(this.host)
                 .port(this.port)
+                .wiretap(LOGGER.getName(), LogLevel.DEBUG, AdvancedByteBufFormat.HEX_DUMP)
                 .doOnConnection(sessionManager::initialize)
                 .bindNow();
 
@@ -63,7 +68,7 @@ public final class MysqlServer {
         return this.server != null ? this.server.port() : this.port;
     }
 
-    public static MysqlServer create(final Map<String, String> environment, final SparkSession spark) {
+    public static MysqlServer create(final Map<String, String> environment, final SparkSession spark) throws CertificateException, SSLException {
         return MysqlServer.create(
                 environment.getOrDefault(IO_EXSQL_MYSQL_SERVER_HOST_ENVIRONMENT_VARIABLE_NAME, IO_EXSQL_MYSQL_SERVER_HOST_DEFAULT),
                 Integer.parseInt(environment.getOrDefault(IO_EXSQL_MYSQL_SERVER_PORT_ENVIRONMENT_VARIABLE_NAME, IO_EXSQL_MYSQL_SERVER_PORT_DEFAULT)),
@@ -71,7 +76,7 @@ public final class MysqlServer {
         );
     }
 
-    public static MysqlServer create(final String host, final int port, final SparkSession spark) {
+    public static MysqlServer create(final String host, final int port, final SparkSession spark) throws CertificateException, SSLException {
         return new MysqlServer(host, port, spark);
     }
 

@@ -10,6 +10,8 @@ public class Capability {
 
     public final static int CLIENT_INTERACTIVE_FLAG = 1024;
 
+    public final static int CLIENT_SSL_FLAG = 2048;
+
     public final static int CLIENT_PLUGIN_AUTH_FLAG = 1 << 19;
 
     public final static int CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;
@@ -26,6 +28,7 @@ public class Capability {
         flag |= CLIENT_CONNECT_WITH_DB_FLAG;
         flag |= CLIENT_PROTOCOL_41_FLAG;
         flag |= CLIENT_INTERACTIVE_FLAG;
+        flag |= CLIENT_SSL_FLAG;
         flag |= CLIENT_PLUGIN_AUTH_FLAG;
         flag |= CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA;
         flag |= CLIENT_DEPRECATE_EOF_FLAG;
@@ -41,6 +44,10 @@ public class Capability {
 
     public static boolean hasClientConnectWithDBFlag(final int flag) {
         return (flag & CLIENT_CONNECT_WITH_DB_FLAG) != 0;
+    }
+
+    public static boolean hasClientSSLFlag(final int flag) {
+        return (flag & CLIENT_SSL_FLAG) != 0;
     }
 
     public static boolean hasClientPluginAuthClientDataFlag(final int flag) {

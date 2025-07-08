@@ -33,12 +33,12 @@ public class TextResultsetPacketStreamBuilder implements Iterator<PacketBuilder>
 
         var schema = dataset.schema();
         for (final StructField field: schema.fields()) {
-            this.columnDefinitions.add(COMQueryResponseDatasetHelper.createColumnDefinition(field));
+            this.columnDefinitions.add(ComQueryResponseDatasetHelper.createColumnDefinition(field));
         }
 
         var rows = dataset.collectAsList();
         for (final Row row: rows) {
-            this.rows.add(COMQueryResponseDatasetHelper.convertRowToStringList(row, schema));
+            this.rows.add(ComQueryResponseDatasetHelper.convertRowToStringList(row, schema));
         }
     }
 
