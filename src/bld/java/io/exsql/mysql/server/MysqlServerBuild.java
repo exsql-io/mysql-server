@@ -33,7 +33,21 @@ public class MysqlServerBuild extends Project {
 
         scope(test)
             .include(dependency("org.junit.jupiter", "junit-jupiter", version(5,11,4)))
-            .include(dependency("org.junit.platform", "junit-platform-console-standalone", version(1,11,4)));
+            .include(dependency("org.junit.platform", "junit-platform-console-standalone", version(1,11,4)))
+            // Spark 3.5.6 for testing (overrides provided Spark 4.0.0)
+            .include(dependency("org.apache.spark", "spark-sql_2.13", version(3,5,6)))
+            .include(dependency("org.apache.spark", "spark-core_2.13", version(3,5,6)))
+            // MySQL JDBC driver for integration tests
+            .include(dependency("mysql", "mysql-connector-java", version(8,0,33)))
+            // TestContainers for isolated testing environment
+            .include(dependency("org.testcontainers", "testcontainers", version(1,19,3)))
+            .include(dependency("org.testcontainers", "junit-jupiter", version(1,19,3)))
+            // Better assertions and mocking
+            .include(dependency("org.assertj", "assertj-core", version(3,24,2)))
+            .include(dependency("org.mockito", "mockito-core", version(5,8,0)))
+            .include(dependency("org.mockito", "mockito-junit-jupiter", version(5,8,0)))
+            // H2 database for lightweight test data
+            .include(dependency("com.h2database", "h2", version(2,2,224)));
     }
 
     public static void main(String[] args) {

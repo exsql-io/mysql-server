@@ -84,23 +84,22 @@ public final class ComQueryResponseDatasetHelper {
     private ComQueryResponseDatasetHelper() {}
 
     /**
-     * Converts a Spark DataFrame/Dataset<Row> to a COMQueryResponseBuilder.
+     * Converts a Spark DataFrame/Dataset<Row> to a streaming COMQueryResponseBuilder.
      * 
      * <p>This method extracts the schema information from the dataset to create column definitions,
-     * and extracts the row data to populate the rows in the response. It handles all Spark data types
-     * and maps them to appropriate MySQL column types.</p>
+     * and creates a streaming iterator that processes rows lazily. This approach avoids loading
+     * the entire result set into memory, making it suitable for large datasets.</p>
      * 
-     * <p>Note: This method calls {@code dataset.collectAsList()} which will collect all data from
-     * the distributed dataset to the driver. Be cautious when using this with large datasets as it
-     * may cause out of memory errors on the driver. Consider limiting the size of the dataset
-     * before calling this method, for example by using {@code dataset.limit(1000)}.</p>
+     * <p>The streaming implementation uses Spark's {@code toLocalIterator()} to process rows
+     * on-demand, preventing OutOfMemory issues with large result sets.</p>
      *
+     * @param capabilitiesFlag the MySQL client capabilities flag
      * @param dataset the Spark DataFrame/Dataset<Row> to convert
-     * @return a configured COMQueryResponseBuilder ready to build MySQL protocol packets
+     * @return a configured streaming COMQueryResponseBuilder ready to build MySQL protocol packets
      * @throws IllegalArgumentException if the dataset is null
      */
-    public static TextResultsetPacketStreamBuilder fromDataset(final int capabilitiesFlag, final Dataset<Row> dataset) {
-        return TextResultsetPacketStreamBuilder.create(capabilitiesFlag, dataset);
+    public static StreamingTextResultsetPacketBuilder fromDataset(final int capabilitiesFlag, final Dataset<Row> dataset) {
+        return StreamingTextResultsetPacketBuilder.create(capabilitiesFlag, dataset);
     }
 
     /**

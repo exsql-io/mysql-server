@@ -8,8 +8,8 @@ import io.netty.buffer.ByteBuf;
 import java.nio.charset.StandardCharsets;
 
 // TODO:
-//  - handle split of payload >= 16MB
 //  - handle session state
+// Note: Packet size validation is now implemented in PacketBuilder base class
 public final class OkPacketBuilder extends PacketBuilder {
 
     public static final byte OK_PACKET_HEADER = (byte) 0x00;

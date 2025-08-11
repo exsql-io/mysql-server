@@ -1,7 +1,7 @@
 package io.exsql.mysql.server.protocol.client;
 
 public enum PacketHeaderKind {
-    QUIT((byte) 0x01), QUERY((byte) 0x03), UNKNOWN((byte) 0xFF);
+    QUIT((byte) 0x01), INIT_DB((byte) 0x02), QUERY((byte) 0x03), UNKNOWN((byte) 0xFF);
 
     private final byte value;
 
